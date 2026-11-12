@@ -1,0 +1,144 @@
+<title>Bậc Thang Số</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: một cột hẹp — ô nhập, hình bậc thang, các phép phân loại, bảng thử nhiều số */
+:root{
+  --bg:#f6f7f4; --surface:#ffffff; --fg:#1d2420; --muted:#5f6b64; --line:#d9ded9;
+  --step:#2f6f5e; --rest:#d08a2c; --hit:#2f6f5e; --hit-bg:#e3f0eb; --miss-bg:#f3ece2;
+  --f-body:"Be Vietnam Pro",system-ui,sans-serif; --f-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141917; --surface:#1c2320; --fg:#e7ece9; --muted:#9aa8a1; --line:#2e3833;
+  --step:#5fb39b; --rest:#e2a24c; --hit:#7fd0b8; --hit-bg:#1f3a32; --miss-bg:#3a2f20; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --surface:#1c2320; --fg:#e7ece9; --muted:#9aa8a1; --line:#2e3833;
+  --step:#5fb39b; --rest:#e2a24c; --hit:#7fd0b8; --hit-bg:#1f3a32; --miss-bg:#3a2f20; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:860px;margin:0 auto;padding-block:28px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:22px}
+h1{font-size:1.9rem;margin:0;text-wrap:balance}
+h2{font-size:1.1rem;margin:0 0 8px}
+p{margin:0}
+.sub{color:var(--muted);max-width:65ch}
+.mono,code,td.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+form{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+input{font:600 1.2rem var(--f-mono);padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);width:11ch}
+button{font:600 .95rem var(--f-body);padding:10px 16px;border-radius:8px;border:1px solid var(--step);background:var(--step);color:var(--bg);cursor:pointer}
+button.ghost{background:transparent;color:var(--step)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--rest);outline-offset:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.eq{font-family:var(--f-mono);font-size:1.05rem;overflow-wrap:anywhere}
+.stairs{overflow-x:auto;padding-top:8px}
+.stairs svg{display:block}
+.legend{display:flex;gap:16px;color:var(--muted);font-size:.85rem;margin-top:6px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.tag{display:inline-block;font-size:.8rem;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--hit-bg);color:var(--hit)}
+.tag.warn{background:var(--miss-bg);color:var(--rest)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.9rem}
+th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}
+tr.hit td{background:var(--hit-bg)}
+ul{margin:6px 0 0;padding-left:20px}
+li{margin:3px 0}
+.result{font-size:1.05rem}
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:6px">
+    <h1>Bậc Thang Số</h1>
+    <p class="sub">Tách N thành bậc thang 1 + 2 + … + n cộng phần dư, phân loại bậc thang và dùng chuỗi UCLN để tìm ước của N (N = p·q).</p>
+  </header>
+
+  <form id="f">
+    <label for="n" class="sub">N =</label>
+    <input id="n" type="number" min="3" step="1" value="39">
+    <button type="submit">Phân tích</button>
+    <div class="chips" id="chips"></div>
+  </form>
+
+  <section class="panel" id="out"></section>
+
+  <section class="panel">
+    <h2>Thử nhiều số</h2>
+    <form id="fb" style="margin-bottom:10px">
+      <input id="batch" type="text" style="width:min(100%,28ch);font-size:1rem" value="15, 21, 35, 77, 91, 39">
+      <button type="submit" class="ghost">Chạy</button>
+    </form>
+    <div class="tbl"><table id="bt"></table></div>
+  </section>
+
+  <section class="panel">
+    <h2>Cách đọc</h2>
+    <ul class="sub">
+      <li><b>Bậc thang tròn</b>: N = T(n) = n(n+1)/2, dư 0. Ước nằm trong n và n+1.</li>
+      <li><b>Thiếu 1</b>: dư = n, tức N = T(n+1) − 1 = n(n+3)/2. Ước nằm trong n và n+3.</li>
+      <li><b>Bậc thang nâng k</b>: N = (k+1) + (k+2) + … + (k+m) = m(m+2k+1)/2, tức N − T(m) chia hết cho m. k = 1, 2, 3… ứng với “đơn, đôi, ba”: thừa số thứ hai là m+3, m+5, m+7…</li>
+      <li><b>Chuỗi UCLN</b>: g = UCLN(N, dư); nếu g = 1 (hoặc g = N) thì cộng thêm bậc trên cùng n, rồi n−1, … cho tới khi g là ước thật.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const T=n=>n*(n+1)/2;
+const gcd=(a,b)=>{while(b){[a,b]=[b,a%b]}return a};
+function factor(N){const f=[];let x=N;for(let p=2;p*p<=x;p++)while(x%p===0){f.push(p);x/=p}if(x>1)f.push(x);return f}
+function analyze(N){
+  const n=Math.floor((Math.sqrt(8*N+1)-1)/2), r=N-T(n);
+  let kind, kindNote;
+  if(r===0){kind="Bậc thang tròn";kindNote=`N = ${n}·${n+1}/2`}
+  else if(r===n){kind="Thiếu 1 để lên bậc "+(n+1);kindNote=`N = T(${n+1}) − 1 = ${n}·${n+3}/2`}
+  else{kind="Bậc thang có dư";kindNote=`dư ${r}, cần thêm ${n+1-r} để lên bậc ${n+1}`}
+  // bậc thang nâng k
+  const lifts=[];
+  for(let m=n;m>=2;m--){const d=N-T(m);if(d%m===0){const k=d/m;const a=m,b=m+2*k+1;
+    const g=gcd(N,m%2?m:b);lifts.push({m,k,a,b,g:(g>1&&g<N)?g:gcd(N,a%2?a:a/2)})}}
+  // chuỗi UCLN
+  const chain=[];let s=r,top=n,g=gcd(N,s),expr=r===0?"0":String(r);
+  chain.push({expr,s,g});
+  while((g===1||g===N)&&top>0){s+=top;expr+=" + "+top;top--;g=gcd(N,s);chain.push({expr,s,g})}
+  const ok=g>1&&g<N;
+  return{N,n,r,kind,kindNote,lifts,chain,g:ok?g:null,other:ok?N/g:null,fac:factor(N)}
+}
+function stairsSVG(n,r){
+  if(n>40)return`<p class="sub">Bậc thang quá cao để vẽ (n = ${n}).</p>`;
+  const c=Math.max(8,Math.min(22,Math.floor(560/(n+1)))),gap=2,W=(n+1)*(c+gap)+4,H=n*(c+gap)+4;
+  let s=`<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Bậc thang ${n} tầng, dư ${r}">`;
+  for(let i=1;i<=n;i++)for(let j=0;j<i;j++)s+=`<rect x="${2+(i-1)*(c+gap)}" y="${H-2-(j+1)*(c+gap)+gap}" width="${c}" height="${c}" rx="2" fill="var(--step)"/>`;
+  for(let j=0;j<r;j++)s+=`<rect x="${2+n*(c+gap)}" y="${H-2-(j+1)*(c+gap)+gap}" width="${c}" height="${c}" rx="2" fill="var(--rest)"/>`;
+  return s+"</svg>"
+}
+function render(N){
+  const out=document.getElementById("out");
+  if(!Number.isInteger(N)||N<3||N>1e12){out.innerHTML=`<p>Nhập một số nguyên từ 3 đến 10<sup>12</sup>.</p>`;return}
+  const a=analyze(N);
+  const sum=a.n<=12?Array.from({length:a.n},(_,i)=>i+1).join(" + "):`1 + 2 + … + ${a.n}`;
+  const semi=a.fac.length===2;
+  out.innerHTML=`
+   <div style="display:grid;gap:14px">
+    <p class="eq">${N} = ${sum}${a.r?` <span style="color:var(--rest)">+ ${a.r}</span>`:""}</p>
+    <p><span class="tag ${a.r&&a.r!==a.n?"warn":""}">${a.kind}</span> <span class="mono sub">${a.kindNote}</span></p>
+    <div class="stairs">${stairsSVG(a.n,a.r)}
+      <div class="legend"><span><i class="sw" style="background:var(--step)"></i>bậc thang T(${a.n}) = ${T(a.n)}</span><span><i class="sw" style="background:var(--rest)"></i>phần dư ${a.r}</span></div></div>
+    <div><h2>Chuỗi UCLN</h2><div class="tbl"><table><tr><th>Tổng thử</th><th>Giá trị</th><th>UCLN(${N}, ·)</th></tr>
+      ${a.chain.map(c=>`<tr class="${c.g>1&&c.g<N?"hit":""}"><td class="num">${c.expr}</td><td class="num">${c.s}</td><td class="num">${c.g}</td></tr>`).join("")}</table></div>
+      <p class="result" style="margin-top:8px">${a.g?`Ước tìm được: <b class="mono">${a.g}</b> → ${N} = <b class="mono">${a.g} × ${a.other}</b>`:"Không tìm được ước thật (N có thể là số nguyên tố)."}</p></div>
+    <div><h2>Bậc thang nâng k</h2>
+      ${a.lifts.length?`<div class="tbl"><table><tr><th>m bậc</th><th>k</th><th>Dạng</th><th>N = m(m+2k+1)/2</th></tr>
+      ${a.lifts.slice(0,8).map(l=>`<tr><td class="num">${l.m}</td><td class="num">${l.k}</td><td class="num">${l.k+1} + … + ${l.k+l.m}</td><td class="num">${l.m}·${l.b}/2</td></tr>`).join("")}</table></div>`:`<p class="sub">Không có.</p>`}</div>
+    <p class="sub">Phân tích thừa số kiểm tra: ${N} = ${a.fac.join(" × ")} ${semi?"(tích 2 số nguyên tố)":"(không phải tích đúng 2 số nguyên tố)"}</p>
+   </div>`;
+}
+function renderBatch(list){
+  const rows=list.map(analyze);
+  document.getElementById("bt").innerHTML=`<tr><th>N</th><th>n</th><th>Dư</th><th>Loại</th><th>Chuỗi UCLN</th><th>Kết quả</th></tr>`+
+   rows.map(a=>`<tr><td class="num">${a.N}</td><td class="num">${a.n}</td><td class="num">${a.r}</td><td>${a.kind}</td><td class="num">${a.chain.map(c=>`(${c.s}→${c.g})`).join(" ")}</td><td class="num">${a.g?a.g+" × "+a.other:"—"}</td></tr>`).join("");
+}
+const chips=document.getElementById("chips");
+[15,21,35,77,91,39].forEach(v=>{const b=document.createElement("button");b.type="button";b.className="ghost";b.textContent=v;b.onclick=()=>{document.getElementById("n").value=v;render(v)};chips.appendChild(b)});
+document.getElementById("f").addEventListener("submit",e=>{e.preventDefault();render(Number(document.getElementById("n").value))});
+document.getElementById("fb").addEventListener("submit",e=>{e.preventDefault();renderBatch(document.getElementById("batch").value.split(/[^0-9]+/).map(Number).filter(x=>x>=3))});
+render(39);renderBatch([15,21,35,77,91,39]);
+</script>
